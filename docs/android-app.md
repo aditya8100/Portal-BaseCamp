@@ -51,6 +51,40 @@ adb shell am force-stop com.portalhomebase.app   # HOME app relaunches itself
 - After data changes on the server, wait 35 s for the app poll before judging.
 - Verify with screenshots: `adb exec-out screencap -p > /tmp/x.png`, view it.
 
+## Remote ADB (Portal stays in the kitchen)
+
+The Portal runs ADB over Wi-Fi so builds/installs/screenshots work from the
+Mac mini with no USB cable. One-time setup per Portal reboot, with USB
+attached:
+
+```sh
+adb tcpip 5555 && adb connect 192.168.1.87:5555   # Portal's Wi-Fi IP
+```
+
+- Accept the on-device RSA prompt once (tick "always allow"); later connects
+  are silent.
+- While USB is also attached, target TCP explicitly: `adb -s 192.168.1.87:5555
+  <cmd>`. After unplugging USB, plain `adb` commands just work.
+- If the IP changes (DHCP/network switch), read it on the Portal itself:
+  Settings (gear) > "This Portal" card shows the Wi-Fi IP and the exact
+  connect command. From the mini, `scripts/find-portal.sh [subnet]` probes
+  the LAN for port 5555 (a router DHCP reservation avoids all of this).
+- **Reboot caveat:** TCP mode does NOT survive a Portal reboot (Android 10, no
+  wireless-pairing; `persist.adb.tcp.port` is SELinux-blocked). The Portal is
+  always-on, so this is rare — but any move/power-loss triggers it.
+- **After a reboot (recovery procedure):** someone with physical access plugs
+  ANY laptop into the Portal over USB and runs `adb tcpip 5555`, accepts the
+  on-device RSA prompt (tick "always allow"), then unplugs. The Portal never
+  needs to come back to the Mac mini's desk. Then from the mini: find the new
+  IP (Settings > This Portal on-device, or `scripts/find-portal.sh`) and
+  `adb connect <ip>:5555`. Verify with `adb shell echo ok` before resuming work.
+- Reconnect after network hiccups (no reboot): `adb disconnect && adb connect
+  <ip>:5555`.
+- If the port refuses but the IP is right, the TCP port may differ from 5555
+  (a laptop typo once started it on 5556): check over USB with
+  `adb shell getprop service.adb.tcp.port`. The finder script probes both
+  5555 and 5556.
+
 ## Portal reference (2019 Portal+, 2160x1440 @180dpi, landscape)
 
 - Tab row: y=246; x = 230 (Board), 631 (Home), 1031 (Week), 1431 (Meals),

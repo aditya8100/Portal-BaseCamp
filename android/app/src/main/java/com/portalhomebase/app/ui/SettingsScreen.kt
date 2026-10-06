@@ -37,6 +37,8 @@ import com.portalhomebase.app.ui.theme.Outline
 import com.portalhomebase.app.ui.theme.Selected
 import com.portalhomebase.app.ui.theme.SelectedBorder
 import kotlinx.coroutines.launch
+import java.net.Inet4Address
+import java.net.NetworkInterface
 
 @Composable
 fun SettingsScreen(
@@ -88,7 +90,7 @@ fun SettingsScreen(
                     value = url,
                     onValueChange = { url = it },
                     label = { Text("Server URL") },
-                    placeholder = { Text("http://192.168.1.73:8091") },
+                    placeholder = { Text("http://<mini-ip>:8091") },
                     modifier = Modifier.widthIn(max = 640.dp).fillMaxWidth(),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
@@ -132,5 +134,32 @@ fun SettingsScreen(
                 )
             }
         }
+        Surface(shape = RoundedCornerShape(18.dp), color = CardBg) {
+            Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("This Portal", style = MaterialTheme.typography.titleLarge, color = Ink)
+                val ip = remember { deviceIpv4() }
+                Text(
+                    ip ?: "No Wi-Fi address",
+                    style = MaterialTheme.typography.titleMedium, color = Ink,
+                )
+                Text(
+                    if (ip != null) "Remote ADB: adb connect $ip:5555 — after a reboot, re-enable with any laptop over USB: adb tcpip 5555"
+                    else "Join Wi-Fi to see the remote-ADB address here.",
+                    style = MaterialTheme.typography.bodySmall, color = Muted,
+                )
+            }
+        }
+    }
+}
+
+private fun deviceIpv4(): String? {
+    return try {
+        NetworkInterface.getNetworkInterfaces()?.toList().orEmpty()
+            .sortedBy { if (it.name == "wlan0") 0 else 1 }
+            .flatMap { it.inetAddresses.toList() }
+            .filterIsInstance<Inet4Address>()
+            .firstOrNull { !it.isLoopbackAddress && !it.isLinkLocalAddress }?.hostAddress
+    } catch (e: Exception) {
+        null
     }
 }
