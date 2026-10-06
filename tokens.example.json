@@ -1,0 +1,4 @@
+{
+  "partner1": "paste-64-hex-chars-from-openssl-rand-hex-32",
+  "partner2": "paste-another-64-hex-chars"
+}

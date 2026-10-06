@@ -1,0 +1,23 @@
+# Local secrets + personal data — NEVER commit.
+tokens.json
+hb.json
+config.json
+cards.json
+muse-*.md
+!muse-template.md
+*.heic
+*.heif
+
+# Android / Gradle
+android/local.properties
+android/.gradle/
+android/.idea/
+android/app/build/
+android/build/
+*.iml
+
+# macOS
+.DS_Store
+
+# local agent scratch (unrelated to this project)
+.agents/

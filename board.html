@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Base Camp</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, system-ui, sans-serif; background: #101418;
+         color: #f2f4f8; margin: 0; padding: 88px 32px 40px; }
+  h1 { font-size: 30px; margin: 0 0 16px; font-weight: 700; }
+  .strip { display: grid; grid-template-columns: 1fr 1.2fr; gap: 16px; margin-bottom: 20px; }
+  @media (max-width: 900px) { .strip { grid-template-columns: 1fr; } }
+  .panel { background: #161b23; border-radius: 18px; padding: 20px 24px; }
+  .wx-now { display: flex; align-items: baseline; gap: 14px; }
+  .wx-temp { font-size: 62px; font-weight: 700; line-height: 1; }
+  .wx-label { font-size: 21px; color: #c7cfd9; }
+  .wx-days { display: flex; gap: 28px; margin-top: 12px; }
+  .wx-day .d { font-size: 15px; color: #9aa4b2; }
+  .wx-day .t { font-size: 23px; margin-top: 2px; }
+  .wx-day .p { font-size: 15px; color: #9aa4b2; }
+  .ev-row { display: flex; gap: 16px; padding: 9px 0; font-size: 19px; align-items: baseline; }
+  .ev-row + .ev-row { border-top: 1px solid #232b36; }
+  .ev-when { color: #9fc1e8; white-space: nowrap; min-width: 128px; }
+  .ev-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ev-loc { color: #9aa4b2; font-size: 16px; margin-left: auto; white-space: nowrap;
+            overflow: hidden; text-overflow: ellipsis; max-width: 40%; }
+  .stale { font-size: 13px; color: #9aa4b2; margin-top: 10px; }
+  .tabs { display: flex; gap: 12px; margin-bottom: 20px; }
+  .tabs button { flex: 1; max-width: 280px; min-height: 64px; font-size: 22px;
+                 border: 1px solid #2c3542; background: #1b212b; color: #f2f4f8;
+                 border-radius: 14px; }
+  .tabs button.active { background: #2c3947; border-color: #4a5b70; }
+  #meta { color: #9aa4b2; margin-bottom: 24px; font-size: 15px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 20px; }
+  .card { background: #1b212b; border-radius: 16px; padding: 22px 24px; }
+  .card h2 { font-size: 25px; margin: 0 0 8px; line-height: 1.2; }
+  .card p { font-size: 18px; line-height: 1.5; white-space: pre-wrap; margin: 0 0 12px; }
+  .card .src { font-size: 14px; color: #9aa4b2; margin-top: 12px; }
+  .actions { display: flex; gap: 10px; margin-top: 14px; align-items: center; flex-wrap: wrap; }
+  .act { min-height: 56px; padding: 0 20px; font-size: 17px; border-radius: 11px;
+         border: 1px solid #2c3542; background: #232b36; color: #f2f4f8; }
+  .act.saved { border-color: #8a6d3b; color: #f0c96a; }
+  .act.danger.armed { border-color: #a03d3d; color: #f09393; }
+  .cooked-on { font-size: 14px; color: #9aa4b2; margin-left: auto; }
+  .card img.top { width: calc(100% + 48px); margin: -22px -24px 16px; max-height: 240px;
+                  object-fit: cover; border-radius: 16px 16px 0 0; display: block; }
+  #empty { font-size: 20px; color: #9aa4b2; }
+  .alert-card { background: #292019; }
+  .alert-card h2 { font-size: 27px; }
+  .sec { font-size: 15px; font-weight: 600; color: #9aa4b2; margin: 16px 0 6px; }
+  .check { display: flex; gap: 14px; align-items: center; min-height: 60px;
+           font-size: 19px; padding: 8px 4px; }
+  .check + .check { border-top: 1px solid #232b36; }
+  .box { width: 30px; height: 30px; border-radius: 9px; border: 2px solid #4a5b70;
+         flex: none; display: flex; align-items: center; justify-content: center;
+         font-size: 20px; color: #101418; }
+  .check.done .box { background: #7fd6a2; border-color: #7fd6a2; }
+  .check.done .txt { color: #9aa4b2; text-decoration: line-through; }
+  ol.steps { margin: 6px 0 0; padding: 0; list-style: none; counter-reset: st; }
+  ol.steps li { counter-increment: st; display: flex; gap: 14px; font-size: 18px;
+                line-height: 1.45; padding: 10px 4px; min-height: 60px; align-items: flex-start; }
+  ol.steps li + li { border-top: 1px solid #232b36; }
+  ol.steps li::before { content: counter(st); flex: none; width: 34px; height: 34px;
+      border-radius: 50%; background: #2c3947; font-size: 17px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+  .meta-line { font-size: 16px; color: #c7cfd9; margin-bottom: 4px; }
+  .acc .kind { font-size: 14px; color: #9aa4b2; margin-bottom: 12px; }
+  .acc .temp { font-size: 34px; margin: 4px 0 12px; }
+  .toggle { width: 100%; min-height: 64px; font-size: 22px; border-radius: 12px;
+            border: 1px solid #2c3542; background: #262e3a; color: #f2f4f8; }
+  .toggle.on { background: #1f6f43; border-color: #2a9d5f; }
+  .acc input[type="range"] { width: 100%; height: 48px; margin-top: 12px; }
+  .acc .dim { display: flex; justify-content: space-between; font-size: 15px;
+              color: #9aa4b2; margin-top: 4px; }
+  #focus { position: fixed; inset: 0; background: rgba(8, 10, 13, 0.97); display: none;
+           flex-direction: column; padding: 48px; z-index: 10; }
+  #focus.open { display: flex; }
+  #focus .count { font-size: 20px; color: #9aa4b2; }
+  #focus .step { font-size: 44px; line-height: 1.35; margin: 24px 0 40px; flex: 1;
+                 overflow-y: auto; }
+  #focus .nav { display: flex; gap: 16px; }
+  #focus button { flex: 1; min-height: 76px; font-size: 24px; border-radius: 14px;
+                  border: 1px solid #2c3542; background: #1b212b; color: #f2f4f8; }
+  #focus button.primary { background: #2c3947; border-color: #4a5b70; }
+</style>
+</head>
+<body>
+<h1>Base Camp</h1>
+<div class="strip">
+  <div class="panel" id="weather"><div class="wx-label">loading weather…</div></div>
+  <div class="panel" id="events"><div class="wx-label">loading calendar…</div></div>
+</div>
+<div class="tabs">
+  <button id="tab-board" class="active">Board</button>
+  <button id="tab-home">Home</button>
+</div>
+<div id="meta">loading…</div>
+<div class="grid" id="grid"></div>
+<div id="focus">
+  <div class="count" id="focus-count"></div>
+  <div class="step" id="focus-step"></div>
+  <div class="nav">
+    <button id="focus-prev">← Prev</button>
+    <button id="focus-next" class="primary">Next →</button>
+    <button id="focus-close">Close</button>
+  </div>
+</div>
+<script>
+const token = new URLSearchParams(location.search).get('token') || '';
+const auth = { Authorization: 'Bearer ' + token };
+let view = 'board';
+let focusSteps = [], focusIdx = 0;
+
+function el(tag, cls, text) {
+  const d = document.createElement(tag);
+  if (cls) d.className = cls;
+  if (text !== undefined) d.textContent = text;
+  return d;
+}
+const ago = (ts) => {
+  const m = Math.max(0, Math.round((Date.now() - ts) / 60000));
+  return m < 1 ? 'just now' : m === 1 ? '1 min ago' : m + ' min ago';
+};
+const fmtDay = (ms, tz) => new Date(ms).toLocaleDateString('en-US', { timeZone: tz, weekday: 'short' });
+const fmtTime = (ms, tz) => new Date(ms).toLocaleTimeString('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit' }).replace(':00 ', ' ');
+
+async function refreshHeader() {
+  const [wr, cr] = await Promise.all([
+    fetch('/api/weather', { headers: auth }),
+    fetch('/api/calendar', { headers: auth }),
+  ]);
+  const wbox = document.getElementById('weather');
+  const ebox = document.getElementById('events');
+  wbox.innerHTML = '';
+  ebox.innerHTML = '';
+  try {
+    const w = await wr.json();
+    if (w.error) {
+      wbox.append(el('div', 'wx-label', 'Weather unavailable'));
+    } else {
+      const n = el('div', 'wx-now');
+      n.append(el('div', 'wx-temp', w.current.temp + '°C'), el('div', 'wx-label', w.current.label));
+      const days = el('div', 'wx-days');
+      const names = ['Today', 'Tomorrow'];
+      for (let i = 0; i < 2; i++) {
+        const d = w.days[i + 1] || w.days[i];
+        const cell = el('div', 'wx-day');
+        cell.append(el('div', 'd', names[i]),
+          el('div', 't', d.hi + '° / ' + d.lo + '°C'),
+          el('div', 'p', (d.precip ?? 0) + '% rain · ' + d.label));
+        days.append(cell);
+      }
+      wbox.append(n, days, el('div', 'stale', 'updated ' + ago(w.fetchedAt) + (w.stale ? ' (stale)' : '')));
+    }
+  } catch (e) { wbox.append(el('div', 'wx-label', 'Weather unavailable')); }
+  try {
+    const c = await cr.json();
+    if (c.error || !c.events) {
+      ebox.append(el('div', 'wx-label', 'Calendar unavailable'));
+    } else if (!c.events.length) {
+      ebox.append(el('div', 'wx-label', 'Nothing coming up'));
+    } else {
+      for (const ev of c.events.slice(0, 3)) {
+        const row = el('div', 'ev-row');
+        const when = ev.allDay ? fmtDay(ev.start, c.tz) + ' · all day'
+          : fmtDay(ev.start, c.tz) + ' ' + fmtTime(ev.start, c.tz);
+        row.append(el('div', 'ev-when', when), el('div', 'ev-title', ev.title));
+        if (ev.location) row.append(el('div', 'ev-loc', ev.location));
+        ebox.append(row);
+      }
+      ebox.append(el('div', 'stale', 'updated ' + ago(c.fetchedAt) + (c.stale ? ' (stale)' : '')));
+    }
+  } catch (e) { ebox.append(el('div', 'wx-label', 'Calendar unavailable')); }
+}
+
+async function putItem(id, index, done) {
+  const r = await fetch('/api/cards/' + encodeURIComponent(id) + '/items', {
+    method: 'PUT',
+    headers: { ...auth, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ index, done }),
+  });
+  if (!r.ok) throw new Error('http ' + r.status);
+  refreshBoard();
+}
+
+async function cookedCard(id) {
+  const r = await fetch('/api/cards/' + encodeURIComponent(id) + '/cooked', { method: 'POST', headers: auth });
+  if (!r.ok) throw new Error('http ' + r.status);
+  refreshBoard();
+}
+
+async function favCard(id, fav) {
+  const r = await fetch('/api/cards/' + encodeURIComponent(id), {
+    method: 'PATCH',
+    headers: { ...auth, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ favorite: fav }),
+  });
+  if (!r.ok) throw new Error('http ' + r.status);
+  refreshBoard();
+}
+
+async function delCard(id) {
+  const r = await fetch('/api/cards/' + encodeURIComponent(id), { method: 'DELETE', headers: auth });
+  if (!r.ok) throw new Error('http ' + r.status);
+  refreshBoard();
+}
+
+function checkRow(card, item, index) {
+  const row = el('div', 'check' + (item.done ? ' done' : ''));
+  const box = el('div', 'box', item.done ? '✓' : '');
+  row.append(box, el('div', 'txt', item.text));
+  row.onclick = () => putItem(card.id, index, !item.done).catch((e) => alert('failed: ' + e.message));
+  return row;
+}
+
+function openFocus(steps, idx) {
+  focusSteps = steps;
+  focusIdx = idx;
+  renderFocus();
+  document.getElementById('focus').classList.add('open');
+}
+function renderFocus() {
+  document.getElementById('focus-count').textContent =
+    'Step ' + (focusIdx + 1) + ' of ' + focusSteps.length;
+  document.getElementById('focus-step').textContent = focusSteps[focusIdx];
+}
+document.getElementById('focus-prev').onclick = () => {
+  focusIdx = (focusIdx - 1 + focusSteps.length) % focusSteps.length;
+  renderFocus();
+};
+document.getElementById('focus-next').onclick = () => {
+  focusIdx = (focusIdx + 1) % focusSteps.length;
+  renderFocus();
+};
+document.getElementById('focus-close').onclick = () =>
+  document.getElementById('focus').classList.remove('open');
+
+function renderCard(c) {
+  const d = el('div', 'card' + (c.type === 'alert' ? ' alert-card' : ''));
+  if (c.image) {
+    const img = document.createElement('img');
+    img.className = 'top';
+    img.src = c.image;
+    img.loading = 'lazy';
+    img.onerror = () => img.remove();
+    d.append(img);
+  }
+  d.append(el('h2', null, c.title));
+  if (c.type === 'recipe' && (c.meta?.time || c.meta?.servings)) {
+    const bits = [];
+    if (c.meta.time) bits.push(c.meta.time);
+    if (c.meta.servings) bits.push('Serves ' + c.meta.servings);
+    d.append(el('div', 'meta-line', bits.join('  ·  ')));
+  }
+  if (c.body) d.append(el('p', null, c.body));
+  if (c.items?.length && (c.type === 'list' || c.type === 'recipe')) {
+    if (c.type === 'recipe') d.append(el('div', 'sec', 'Ingredients'));
+    c.items.forEach((it, i) => d.append(checkRow(c, it, i)));
+  }
+  if (c.steps?.length && c.type === 'recipe') {
+    d.append(el('div', 'sec', 'Steps'));
+    const ol = el('ol', 'steps');
+    c.steps.forEach((s, i) => {
+      const li = document.createElement('li');
+      li.textContent = s;
+      li.onclick = () => openFocus(c.steps, i);
+      ol.append(li);
+    });
+    d.append(ol);
+  }
+  const when = new Date(c.ts).toLocaleString();
+  d.append(el('div', 'src', 'from ' + c.source + ' · ' + when));
+  const acts = el('div', 'actions');
+  if (c.type === 'recipe') {
+    const ck = el('button', 'act', '✓ Cooked it');
+    ck.onclick = () => cookedCard(c.id).catch((e) => alert('failed: ' + e.message));
+    acts.append(ck);
+    const st = el('button', 'act' + (c.favorite ? ' saved' : ''), c.favorite ? '★ Saved' : '☆ Save');
+    st.onclick = () => favCard(c.id, !c.favorite).catch((e) => alert('failed: ' + e.message));
+    acts.append(st);
+    if (c.lastCookedAt) {
+      acts.append(el('span', 'cooked-on',
+        'Cooked ' + new Date(c.lastCookedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })));
+    }
+  }
+  const del = el('button', 'act danger', 'Delete');
+  del.onclick = () => {
+    if (del.dataset.armed) {
+      delCard(c.id).catch((e) => alert('failed: ' + e.message));
+    } else {
+      del.dataset.armed = '1';
+      del.classList.add('armed');
+      del.textContent = 'Tap again to delete';
+      setTimeout(() => {
+        del.dataset.armed = '';
+        del.classList.remove('armed');
+        del.textContent = 'Delete';
+      }, 3000);
+    }
+  };
+  acts.append(del);
+  d.append(acts);
+  return d;
+}
+
+async function refreshBoard() {
+  const r = await fetch('/api/cards', { headers: auth });
+  if (!r.ok) throw new Error('http ' + r.status);
+  const { cards } = await r.json();
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  document.getElementById('meta').textContent =
+    cards.length + (cards.length === 1 ? ' card' : ' cards') + ' · updated ' + new Date().toLocaleTimeString();
+  if (!cards.length) grid.innerHTML = '<div id="empty">No cards yet — ask a Muse to post one.</div>';
+  for (const c of cards) grid.append(renderCard(c));
+}
+
+const c2f = (c) => Math.round(c * 9 / 5 + 32);
+
+async function putChar(id, characteristicType, value) {
+  const r = await fetch('/api/home/accessories/' + encodeURIComponent(id), {
+    method: 'PUT',
+    headers: { ...auth, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ characteristicType, value }),
+  });
+  if (!r.ok) throw new Error('http ' + r.status);
+  refreshHome();
+}
+
+async function refreshHome() {
+  const r = await fetch('/api/home/accessories', { headers: auth });
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  if (r.status === 503) {
+    document.getElementById('meta').textContent = 'Homebridge not configured yet.';
+    grid.innerHTML = '<div id="empty">Create hb.json on the mini to enable home control.</div>';
+    return;
+  }
+  if (!r.ok) throw new Error('http ' + r.status);
+  const { accessories } = await r.json();
+  const shown = accessories.filter((a) =>
+    ('On' in (a.values || {})) || ('CurrentTemperature' in (a.values || {})));
+  document.getElementById('meta').textContent =
+    shown.length + ' devices · updated ' + new Date().toLocaleTimeString();
+  for (const a of shown) {
+    const d = el('div', 'card acc');
+    d.append(el('h2', null, a.name), el('div', 'kind', a.type));
+    if ('CurrentTemperature' in a.values) {
+      const c = a.values.CurrentTemperature;
+      d.append(el('div', 'temp', c2f(c) + '°F · ' + Math.round(c * 10) / 10 + '°C'));
+    }
+    if (('On' in a.values) && a.writable.includes('On')) {
+      const on = !!a.values.On;
+      const b = el('button', 'toggle' + (on ? ' on' : ''), on ? 'ON' : 'OFF');
+      b.onclick = () => putChar(a.uniqueId, 'On', !on).catch((e) => alert('failed: ' + e.message));
+      d.append(b);
+    }
+    if (('Brightness' in a.values) && a.writable.includes('Brightness')) {
+      const s = document.createElement('input');
+      s.type = 'range'; s.min = 0; s.max = 100; s.value = a.values.Brightness;
+      s.onchange = () => putChar(a.uniqueId, 'Brightness', Number(s.value))
+        .catch((e) => alert('failed: ' + e.message));
+      const row = el('div', 'dim');
+      row.append(el('span', null, 'Brightness'), el('span', null, a.values.Brightness + '%'));
+      d.append(s, row);
+    }
+    grid.append(d);
+  }
+}
+
+async function refresh() {
+  try {
+    await refreshHeader();
+    if (view === 'board') await refreshBoard();
+    else await refreshHome();
+  } catch (e) {
+    document.getElementById('meta').textContent = 'error: ' + e.message;
+  }
+}
+
+document.getElementById('tab-board').onclick = (e) => {
+  view = 'board';
+  document.getElementById('tab-home').classList.remove('active');
+  e.target.classList.add('active');
+  refresh();
+};
+document.getElementById('tab-home').onclick = (e) => {
+  view = 'home';
+  document.getElementById('tab-board').classList.remove('active');
+  e.target.classList.add('active');
+  refresh();
+};
+refresh();
+setInterval(refresh, 30000);
+</script>
+</body>
+</html>
