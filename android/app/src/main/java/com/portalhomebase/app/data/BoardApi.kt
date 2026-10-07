@@ -60,6 +60,10 @@ class BoardApi(baseUrl: String, private val token: String) {
         call("/api/cards/$id", "PATCH", JSONObject().put("pinned", pinned))
     }
 
+    suspend fun setHidden(id: String, hidden: Boolean) {
+        call("/api/cards/$id", "PATCH", JSONObject().put("hidden", hidden))
+    }
+
     suspend fun deleteCard(id: String) {
         call("/api/cards/$id", "DELETE")
     }

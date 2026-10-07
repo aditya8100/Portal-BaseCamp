@@ -72,12 +72,20 @@ describe('mealplan cards', () => {
 
   it('accepts the mealplan type with a 7-day lunch/dinner plan', () => {
     const plan = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => day(
-      d, { label: `${d} lunch`, ref: 'r1' }, { label: `${d} dinner` },
+      d, { label: `${d} lunch`, refs: ['r1'] }, { label: `${d} dinner` },
     ));
     const c = cleanCardInput({ type: 'mealplan', title: 'Week', plan }, 'alex', NOW);
     assert.equal(c.type, 'mealplan');
     assert.equal(c.plan.length, 7);
-    assert.deepEqual(c.plan[0], { day: 'Mon', lunch: { label: 'Mon lunch', ref: 'r1' }, dinner: { label: 'Mon dinner' } });
+    assert.deepEqual(c.plan[0], { day: 'Mon', lunch: { label: 'Mon lunch', refs: ['r1'] }, dinner: { label: 'Mon dinner' } });
+  });
+
+  it('keeps multiple recipe refs per slot, deduped and capped', () => {
+    const c = cleanCardInput({
+      type: 'mealplan', title: 'Week',
+      plan: [day('Mon', { label: 'Thali', refs: ['r1', 'r2', 'r1', '', 'r3', 'r4', 'r5', 'r6'] }, null)],
+    }, 'alex', NOW);
+    assert.deepEqual(c.plan[0].lunch, { label: 'Thali', refs: ['r1', 'r2', 'r3', 'r4', 'r5'] });
   });
 
   it('coerces bad plan shapes instead of throwing', () => {
@@ -96,7 +104,7 @@ describe('mealplan cards', () => {
     assert.ok(c2.plan.every((d) => d.day));
     const mon = c2.plan.find((d) => d.day === 'Mon');
     assert.equal(mon.lunch, null);
-    assert.deepEqual(mon.dinner, { label: 'D', ref: '42' });
+    assert.deepEqual(mon.dinner, { label: 'D' });
     const tue = c2.plan.find((d) => d.day === 'Tue');
     assert.equal(tue.lunch, null);
     assert.equal(tue.dinner, null);
@@ -182,5 +190,19 @@ describe('structured item quantities', () => {
       items: [{ text: 't', qty: 1, unit: 'x', anchor: 'yes' }],
     }, 'alex', NOW);
     assert.ok(!('anchor' in c2.items[0]));
+  });
+});
+
+describe('alert reminders', () => {
+  it('defaults remindAt to null and accepts epoch ms', () => {
+    assert.equal(cleanCardInput({ type: 'alert', title: 'x' }, 'alex', NOW).remindAt, null);
+    assert.equal(
+      cleanCardInput({ type: 'alert', title: 'x', remindAt: NOW + 60000 }, 'alex', NOW).remindAt,
+      NOW + 60000,
+    );
+  });
+
+  it('rejects non-numeric remindAt', () => {
+    assert.throws(() => cleanCardInput({ type: 'alert', title: 'x', remindAt: 'soon' }, 'alex', NOW));
   });
 });

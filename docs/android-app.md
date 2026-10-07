@@ -17,7 +17,12 @@ Portal's HOME (kiosk) with keep-screen-on. Polls the board server every 30 s
   every other tab is fullscreen.
 - `BoardScreen.kt` — household cards only: notes, lists, alerts, meal plans
   (pinned first). **Never recipes.** Weather + Coming Up header is the first
-  full-span grid item, so the whole screen scrolls as one.
+  full-span grid item, so the whole screen scrolls as one. Alerts past
+  `remindAt` render as full-width "Due now" cards (excluded from the normal
+  grid); tap → Keep/Dismiss dialog, Dismiss sets `hidden: true`.
+- `Chime.kt` — synthesized two-tone reminder chime (AudioTrack, no assets).
+  A 15s tick re-checks due alerts; a per-run `fired` set keeps one chime
+  per card per process launch (re-chimes after app restart until dismissed).
 - `HomeScreen.kt` — fullscreen Homebridge accessory grid.
 - `WeekScreen.kt` — fullscreen 7-day calendar grid; events show time ranges.
 - `MealsScreen.kt` — all mealplan cards stacked; linked meals (blue, `→`) open

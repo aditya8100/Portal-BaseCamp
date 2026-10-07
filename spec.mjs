@@ -1,5 +1,5 @@
 // Agent spec rendering (zero deps). Importable; no side effects.
-export const SPEC_VERSION = 3;
+export const SPEC_VERSION = 4;
 
 const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 

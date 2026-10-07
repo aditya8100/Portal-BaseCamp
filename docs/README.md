@@ -27,7 +27,10 @@ dependency Node board server on the Mac mini.
 3. **API/behavior change checklist:** (a) update `agent-spec.md` first (it is
    live the moment you save — the server reads it per request); (b) update the
    matching doc in `docs/`; (c) add or adjust a test if server behavior changed;
-   (d) record it in [current-state.md](current-state.md).
+   (d) record it in [current-state.md](current-state.md); (e) bump
+   `SPEC_VERSION` in `spec.mjs` when the Muse-facing contract changed, so
+   Muses can detect the update; (f) if you touched server code, restart the
+   service and re-verify the live behavior — never trust tests alone.
 4. **Verify, then write.** Only document behavior you observed this session
    (test output, `curl` response, Portal screenshot). Never write docs from
    memory of what the code "should" do.

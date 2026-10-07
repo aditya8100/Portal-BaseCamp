@@ -22,7 +22,10 @@
 - `GET /api/health` → `{ok, cards, homebridge, weather, calendar}` (booleans).
 - `GET /api/spec` → `{specVersion, who, markdown}` rendered from `agent-spec.md`.
 - `GET/POST /api/cards`, `GET/PATCH/DELETE /api/cards/:id`
-  (`hidden`, `pinned`, `favorite` flags; `expiresInSec`/`expiresAt`).
+  (`hidden`, `pinned`, `favorite` flags; `expiresInSec`/`expiresAt`;
+  alerts take `remindAt` epoch ms — PATCH/POST accept it on any type).
+- `hidden: true` hides a card from the Portal only; lists still return it to
+  Muses. The Portal sets this when a due alert is dismissed.
 - `PUT /api/cards/:id/items {index, done}`, `POST /api/cards/:id/cooked`.
 - `GET /api/weather` (current + hourly + 7-day + `sun:{rise,set}` HH:MM).
 - `GET /api/calendar`, `GET /api/calendar/week`.
@@ -50,3 +53,5 @@
 - The funnel URL is for the Muses (remote). The Portal stays on the LAN URL
   (lower latency, no tailnet dependency).
 - Restart server: `launchctl kickstart -k gui/$(id -u)/com.portalhomebase.board`.
+  Required after ANY `*.mjs` edit — a stale server silently serves old
+  validation while tests (which import the files directly) still pass.

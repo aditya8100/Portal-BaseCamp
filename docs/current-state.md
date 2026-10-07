@@ -1,7 +1,7 @@
 # Current state
 
 > Update when: anything below becomes untrue. This is the handoff — keep it
-> short, keep it true. Last verified: 2026-10-06 (see rule 4 in
+> short, keep it true. Last verified: 2026-10-07 (see rule 4 in
 > [README.md](README.md): re-verify before trusting).
 
 ## Live now
@@ -10,11 +10,11 @@
   cards + homebridge + weather + calendar all `true`.
 - Portal+ in the kitchen on the latest APK: Board / Home / Week / Meals /
   Recipes / Settings, flip clock, Austin skyline, sun-driven Auto theme.
-- Cards on the board: a seeded weekly meal plan (two meals linked to the
-  saved recipe), Groceries list, a feature-requests note, one favorited family
-  recipe, one hidden agent bootstrap card.
-- `/api/spec` (v3) serves the current `agent-spec.md`: Board contents rule,
-  retroactive recipe linking, meal-plan weekly hygiene.
+- Cards on the board (7): trash alert with `remindAt`, weekly meal plan
+  ("7 days · 2 recipes linked"), Groceries list, three recipes, one hidden
+  agent bootstrap card.
+- `/api/spec` (v4) serves the current `agent-spec.md`: Board contents rule,
+  retroactive recipe linking, meal-plan weekly hygiene, alert `remindAt`.
 - Tailscale Funnel live (mini hostname `*.ts.net` → :8091; exact URL lives in
   the gitignored Muse cheatsheets): verified `/api/health` 200, `/api/spec`
   401 without token.
@@ -25,6 +25,8 @@
 - Board = notes, lists, alerts, meal plans. Recipes only in Recipes tab.
 - Summary header only on Board (scrolls with cards); all other tabs fullscreen.
 - Meal plans never auto-expire; the weekly rhythm is delete-then-repost.
+- Alert UX is Both (sound + enlarge): due alerts chime once and go full-width;
+  dismissing hides from the Portal only, never from the Muses.
 
 ## Known issues / risks
 

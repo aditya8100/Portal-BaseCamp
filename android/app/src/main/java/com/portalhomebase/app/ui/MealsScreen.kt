@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -49,6 +50,7 @@ fun MealsScreen(state: BoardState, modifier: Modifier = Modifier) {
     val cards by state.cards.collectAsState()
     val scope = rememberCoroutineScope()
     var openRecipe by remember { mutableStateOf<Card?>(null) }
+    var pickRecipe by remember { mutableStateOf<List<Card>?>(null) }
     var pendingDelete by remember { mutableStateOf<Card?>(null) }
     val plans = cards.filter { it.type == "mealplan" }
     val recipes = remember(cards) { cards.filter { it.type == "recipe" }.associateBy { it.id } }
@@ -67,7 +69,24 @@ fun MealsScreen(state: BoardState, modifier: Modifier = Modifier) {
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             plans.forEach { plan ->
-                PlanGrid(plan, recipes) { openRecipe = it }
+                PlanGrid(plan, recipes, { openRecipe = it }, { pickRecipe = it })
+            }
+        }
+    }
+
+    pickRecipe?.let { options ->
+        Dialog(onDismissRequest = { pickRecipe = null }) {
+            Surface(shape = RoundedCornerShape(18.dp), color = CardBg) {
+                Column(Modifier.padding(28.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Which recipe?", style = MaterialTheme.typography.titleLarge, color = Ink)
+                    options.forEach { recipe ->
+                        DialogButton(recipe.title, Modifier.fillMaxWidth()) {
+                            pickRecipe = null
+                            openRecipe = recipe
+                        }
+                    }
+                    DialogButton("Cancel", Modifier.fillMaxWidth()) { pickRecipe = null }
+                }
             }
         }
     }
@@ -105,7 +124,12 @@ fun MealsScreen(state: BoardState, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun PlanGrid(plan: Card, recipes: Map<String, Card>, onOpenRecipe: (Card) -> Unit) {
+private fun PlanGrid(
+    plan: Card,
+    recipes: Map<String, Card>,
+    onOpenRecipe: (Card) -> Unit,
+    onPickRecipe: (List<Card>) -> Unit,
+) {
     Card(
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = Panel),
@@ -139,9 +163,9 @@ private fun PlanGrid(plan: Card, recipes: Map<String, Card>, onOpenRecipe: (Card
                         day.day, style = MaterialTheme.typography.titleMedium, color = Ink,
                         modifier = Modifier.width(140.dp),
                     )
-                    MealCell(day.lunch, Modifier.weight(1f), recipes, onOpenRecipe)
+                    MealCell(day.lunch, Modifier.weight(1f), recipes, onOpenRecipe, onPickRecipe)
                     Spacer(Modifier.width(8.dp))
-                    MealCell(day.dinner, Modifier.weight(1f), recipes, onOpenRecipe)
+                    MealCell(day.dinner, Modifier.weight(1f), recipes, onOpenRecipe, onPickRecipe)
                 }
             }
         }
@@ -149,12 +173,23 @@ private fun PlanGrid(plan: Card, recipes: Map<String, Card>, onOpenRecipe: (Card
 }
 
 @Composable
-private fun MealCell(slot: MealSlot?, modifier: Modifier, recipes: Map<String, Card>, onOpenRecipe: (Card) -> Unit) {
-    val linked = slot?.ref?.isNotEmpty() == true && recipes.containsKey(slot.ref)
-    val gone = slot?.ref?.isNotEmpty() == true && !recipes.containsKey(slot.ref)
+private fun MealCell(
+    slot: MealSlot?,
+    modifier: Modifier,
+    recipes: Map<String, Card>,
+    onOpenRecipe: (Card) -> Unit,
+    onPickRecipe: (List<Card>) -> Unit,
+) {
+    val resolved = remember(slot, recipes) { slot?.refs?.mapNotNull { recipes[it] }.orEmpty() }
+    val linked = resolved.isNotEmpty()
+    val gone = slot != null && slot.refs.isNotEmpty() && resolved.isEmpty()
     Box(
         modifier.heightIn(min = 64.dp).clip(RoundedCornerShape(12.dp))
-            .then(if (linked) Modifier.clickable { onOpenRecipe(recipes[slot!!.ref]!!) } else Modifier)
+            .then(
+                if (linked) Modifier.clickable {
+                    if (resolved.size == 1) onOpenRecipe(resolved[0]) else onPickRecipe(resolved)
+                } else Modifier,
+            )
             .background(
                 if (linked) Accent.copy(alpha = 0.35f)
                 else Outline.copy(alpha = 0.35f),
@@ -169,7 +204,7 @@ private fun MealCell(slot: MealSlot?, modifier: Modifier, recipes: Map<String, C
                 maxLines = 2, overflow = TextOverflow.Ellipsis,
             )
             else -> Text(
-                (if (linked) "→ " else "") + slot.label,
+                (if (linked) "→ " else "") + slot.label + if (resolved.size > 1) " (${resolved.size})" else "",
                 style = MaterialTheme.typography.bodyLarge,
                 color = if (linked) Ink else Muted,
                 maxLines = 2, overflow = TextOverflow.Ellipsis,

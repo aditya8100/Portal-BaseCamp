@@ -3,6 +3,11 @@ package com.portalhomebase.app.data
 import org.json.JSONArray
 import org.json.JSONObject
 
+private fun JSONArray?.toStringList(): List<String> {
+    if (this == null) return emptyList()
+    return (0 until length()).map { optString(it) }.filter { it.isNotEmpty() }
+}
+
 data class CardItem(
     val text: String,
     val done: Boolean,
@@ -13,7 +18,7 @@ data class CardItem(
     val anchor: Boolean = false,
 )
 
-data class MealSlot(val label: String, val ref: String)
+data class MealSlot(val label: String, val refs: List<String>)
 
 data class MealDay(val day: String, val lunch: MealSlot?, val dinner: MealSlot?)
 
@@ -33,6 +38,7 @@ data class Card(
     val hidden: Boolean,
     val pinned: Boolean,
     val lastCookedAt: Long?,
+    val remindAt: Long?,
     val ts: Long,
 ) {
     companion object {
@@ -71,10 +77,10 @@ data class Card(
                         MealDay(
                             day = d.optString("day"),
                             lunch = d.optJSONObject("lunch")?.let { s ->
-                                MealSlot(s.optString("label"), s.optString("ref"))
+                                MealSlot(s.optString("label"), s.optJSONArray("refs").toStringList())
                             },
                             dinner = d.optJSONObject("dinner")?.let { s ->
-                                MealSlot(s.optString("label"), s.optString("ref"))
+                                MealSlot(s.optString("label"), s.optJSONArray("refs").toStringList())
                             },
                         ),
                     )
@@ -100,6 +106,7 @@ data class Card(
                 hidden = o.optBoolean("hidden"),
                 pinned = o.optBoolean("pinned"),
                 lastCookedAt = if (o.isNull("lastCookedAt")) null else o.optLong("lastCookedAt"),
+                remindAt = if (o.isNull("remindAt")) null else o.optLong("remindAt"),
                 ts = o.optLong("ts"),
             )
         }

@@ -15,9 +15,14 @@ Post — `POST /api/cards`:
 - recipe: `meta: {time, servings}`, `items: [...]` (ingredients, see structured
   quantities below), `steps: [...]` (one action each)
 - list: `items: [{text}]` — groceries, tasks, packing. Check rows via `PUT /api/cards/:id/items {"index": n, "done": true}`.
-- `mealplan`: `plan: [{day, lunch: {label, ref?}, dinner: {label, ref?}}]` — 7 lunch/dinner
-  rows for the Meals tab. `ref` is a recipe card id; tapping the meal opens that
-  recipe. Omit `ref` for plain labels ("Leftovers", "Eat out").
+- `mealplan`: `plan: [{day, lunch: {label, refs?}, dinner: {label, refs?}}]` — 7 lunch/dinner
+  rows for the Meals tab. `refs` is a list of recipe card ids (max 5, deduped);
+  tapping a one-link meal opens that recipe, a multi-link meal offers a picker.
+  Omit `refs` for plain labels ("Leftovers", "Eat out").
+- `alert`: `remindAt` (epoch ms UTC; past values fire immediately) — when it passes,
+  the Portal enlarges the card full-width and chimes once. Dismissing on the
+  Portal sets `hidden: true`, which hides it from the Portal only — lists still
+  return it to Muses.
 - `image`: optional https URL · `priority`: higher floats up · `expiresInSec`: auto-delete
 - Edit: `PATCH /api/cards/:id` (partial). Remove: `DELETE /api/cards/:id`.
 
@@ -36,13 +41,15 @@ ingredient everything scales against); normalize to ONE unit per item
 ## Meal plans
 
 One `mealplan` card per week (title it "Week of …"). Each `plan` entry is
-`{day: "Mon", lunch: {label, ref?}, dinner: {label, ref?}}` — lunch and dinner
-only. To link a recipe: post/read the recipe card first, then use its `id` as
-`ref`. If the recipe is deleted or fades, the meal still shows its label.
-Tapping a recipe card (or a linked meal) opens the full recipe on the display.
+`{day: "Mon", lunch: {label, refs?}, dinner: {label, refs?}}` — lunch and dinner
+only. To link recipes: post/read the recipe cards first, then use their `id`s as
+`refs` (a combo meal like "Dal + Rice" links both). If a recipe is deleted or
+fades, the meal still shows its label.
+Tapping a recipe card (or a one-link meal) opens the full recipe on the display;
+a multi-link meal offers a recipe picker first.
 Link recipes retroactively any time: post the recipe card, then `PATCH`
 the mealplan with the COMPLETE `plan` array (all 7 days — PATCH replaces
-`plan` wholesale, it does not deep-merge), adding `ref` to the matching meals.
+`plan` wholesale, it does not deep-merge), adding `refs` to the matching meals.
 Meal plans never auto-expire and old plans stack up on the Meals tab, so when
 you post a new week, DELETE last week's plan (or PATCH it into the new week).
 A stale plan is worse than none — the family cooks what's on screen.

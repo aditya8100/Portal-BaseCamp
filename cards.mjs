@@ -34,8 +34,10 @@ export function cleanSlot(s) {
   if (!s || typeof s !== 'object' || Array.isArray(s)) return null;
   const label = str(s.label, 200);
   if (!label) return null;
-  const ref = str(s.ref, 100);
-  return ref ? { label, ref } : { label };
+  const refs = Array.isArray(s.refs)
+    ? [...new Set(s.refs.map((r) => str(r, 100)).filter(Boolean))].slice(0, 5)
+    : [];
+  return refs.length > 0 ? { label, refs } : { label };
 }
 
 export function cleanPlan(v) {
@@ -76,6 +78,11 @@ export function cleanCardInput(b, who, nowMs) {
   }
   const priority = b.priority === undefined ? 0 : Number(b.priority);
   if (!Number.isFinite(priority)) throw new Error('priority must be a number');
+  let remindAt = null;
+  if (b.remindAt !== undefined && b.remindAt !== null) {
+    remindAt = Number(b.remindAt);
+    if (!Number.isFinite(remindAt)) throw new Error('remindAt must be epoch ms');
+  }
   return {
     type,
     title,
@@ -91,6 +98,7 @@ export function cleanCardInput(b, who, nowMs) {
     hidden: !!b.hidden,
     pinned: !!b.pinned,
     expiresAt,
+    remindAt,
   };
 }
 

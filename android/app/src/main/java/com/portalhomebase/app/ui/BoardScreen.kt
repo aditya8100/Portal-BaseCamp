@@ -28,6 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -60,6 +61,7 @@ import com.portalhomebase.app.ui.theme.Outline
 import com.portalhomebase.app.ui.theme.Selected
 import com.portalhomebase.app.ui.theme.Star
 import com.portalhomebase.app.ui.theme.Success
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
@@ -81,12 +83,33 @@ fun BoardScreen(
     var focusIdx by remember { mutableIntStateOf(0) }
     var focusOpen by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<Card?>(null) }
+    var dismissAlert by remember { mutableStateOf<Card?>(null) }
     // Board is for household cards — notes, lists, alerts, meal plans.
     // Recipes live only in the Recipes tab (pinned first there), so the
     // Board can never fill up with food.
     val pinned = remember(cards) { cards.filter { it.pinned && it.type != "recipe" } }
     val rest = remember(cards) { cards.filter { !it.pinned && it.type != "recipe" } }
     val shown = remember(cards) { pinned + rest }
+    // Due alerts: full-width cards + one chime each. The tick re-checks
+    // every 15s; the fired set keeps each card to a single chime per run.
+    var nowMs by remember { mutableStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(15_000)
+            nowMs = System.currentTimeMillis()
+        }
+    }
+    val dueAlerts = remember(shown, nowMs) {
+        shown.filter { it.type == "alert" && (it.remindAt ?: 0L) > 0L && it.remindAt!! <= nowMs }
+    }
+    val fired = remember { mutableSetOf<String>() }
+    LaunchedEffect(dueAlerts) {
+        dueAlerts.filter { it.id !in fired }.forEach {
+            fired += it.id
+            playReminderChime(it.id)
+        }
+    }
+    val dueIds = remember(dueAlerts) { dueAlerts.map { it.id }.toSet() }
 
     LazyVerticalGrid(
         columns = GridCells.Adaptive(360.dp),
@@ -108,7 +131,10 @@ fun BoardScreen(
                 }
             }
         } else {
-            items(shown, key = { it.id }) { card ->
+            items(dueAlerts, key = { it.id }, span = { GridItemSpan(maxLineSpan) }) { card ->
+                DueAlertCard(card) { dismissAlert = card }
+            }
+            items(shown.filter { it.id !in dueIds }, key = { it.id }) { card ->
                 CardView(
                     card = card,
                     onToggleItem = { i, done -> scope.launch { state.runAction { toggleItem(card.id, i, done) } } },
@@ -148,6 +174,49 @@ fun BoardScreen(
                     }
                 }
             }
+        }
+    }
+
+    dismissAlert?.let { card ->
+        Dialog(onDismissRequest = { dismissAlert = null }) {
+            Surface(shape = RoundedCornerShape(18.dp), color = CardBg) {
+                Column(Modifier.padding(32.dp)) {
+                    Text("Dismiss “${card.title}”?", style = MaterialTheme.typography.titleMedium, color = Ink)
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "It stays on the board for the Muses, hidden from this display.",
+                        style = MaterialTheme.typography.bodyMedium, color = Muted,
+                    )
+                    Spacer(Modifier.height(24.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        DialogButton("Keep", Modifier.weight(1f)) { dismissAlert = null }
+                        DialogButton("Dismiss", Modifier.weight(1f), danger = true) {
+                            scope.launch { state.runAction { setHidden(card.id, true) } }
+                            dismissAlert = null
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DueAlertCard(card: Card, onTap: () -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onTap),
+        shape = RoundedCornerShape(18.dp), color = AlertCard,
+    ) {
+        Column(Modifier.padding(28.dp)) {
+            Text("Due now", style = MaterialTheme.typography.titleMedium, color = Muted)
+            Spacer(Modifier.height(6.dp))
+            Text(card.title, style = MaterialTheme.typography.headlineSmall, color = Ink)
+            if (card.body.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                Text(card.body, style = MaterialTheme.typography.titleMedium, color = Ink)
+            }
+            Spacer(Modifier.height(12.dp))
+            Text("Tap to dismiss", style = MaterialTheme.typography.bodyMedium, color = Muted)
         }
     }
 }
@@ -224,8 +293,7 @@ private fun CardView(
             if (card.type == "mealplan") {
                 Spacer(Modifier.height(8.dp))
                 val linked = card.plan.sumOf { d ->
-                    (if (d.lunch?.ref?.isNotEmpty() == true) 1 else 0) +
-                        (if (d.dinner?.ref?.isNotEmpty() == true) 1 else 0)
+                    (d.lunch?.refs?.size ?: 0) + (d.dinner?.refs?.size ?: 0)
                 }
                 Text(
                     "${card.plan.size} days · $linked recipes linked →",
